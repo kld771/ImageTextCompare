@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مقارن الوثائق الذكي</title>
+    <title>مقارن الوثائق الشبيه بـ كام سكانر</title>
     <style>
         body { font-family: sans-serif; padding: 15px; background-color: #f4f4f9; text-align: center; }
         .box { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: right; }
@@ -11,104 +11,132 @@
         .btn-cam { background-color: #28a745; margin-bottom: 8px; }
         #result { background: #eef2f5; padding: 15px; border-radius: 5px; text-align: center; font-size: 16px; margin-top: 15px; font-weight: bold; line-height: 1.6; }
         .developer-tag { font-size: 13px; color: #666; margin-bottom: 15px; font-weight: bold; }
-        canvas { display: none; }
+        .preview-canvas { display: block; margin: 10px auto; max-width: 120px; border: 1px solid #ccc; border-radius: 4px; }
+        .hidden-canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <h2>مقارن الوثائق البصري</h2>
+    <h2>مقارن الوثائق الذكي (نظام الفلترة البصرية)</h2>
     <div class="developer-tag">تطوير: المهندس أبوكنان 🛠️</div>
 
-    <!-- الصورة الأولى -->
+    <!-- الوثيقة الأولى -->
     <div class="box">
         <label><b>الوثيقة الأولى:</b></label><br>
-        <button class="btn-cam" onclick="document.getElementById('cam1').click()">📷 تصوير بالكاميرا</button>
-        <input type="file" id="cam1" accept="image/*" capture="environment" style="display:none" onchange="loadImg(event, 'img1_preview', 1)">
+        <button class="btn-cam" onclick="document.getElementById('cam1').click()">📷 تصوير الوثيقة</button>
+        <input type="file" id="cam1" accept="image/*" capture="environment" style="display:none" onchange="processDocument(event, 1)">
         <label>أو اختيار من المعرض:</label>
-        <input type="file" id="file1" accept="image/*" onchange="loadImg(event, 'img1_preview', 1)">
-        <div id="img1_preview" style="font-size:12px; color:green; margin-top:5px;"></div>
+        <input type="file" id="file1" accept="image/*" onchange="processDocument(event, 1)">
+        <canvas id="prevCanvas1" class="preview-canvas"></canvas>
+        <div id="status1" style="font-size:12px; color:green; text-align:center;"></div>
     </div>
 
-    <!-- الصورة الثانية -->
+    <!-- الوثيقة الثانية -->
     <div class="box">
         <label><b>الوثيقة الثانية:</b></label><br>
-        <button class="btn-cam" onclick="document.getElementById('cam2').click()">📷 تصوير بالكاميرا</button>
-        <input type="file" id="cam2" accept="image/*" capture="environment" style="display:none" onchange="loadImg(event, 'img2_preview', 2)">
+        <button class="btn-cam" onclick="document.getElementById('cam2').click()">📷 تصوير الوثيقة</button>
+        <input type="file" id="cam2" accept="image/*" capture="environment" style="display:none" onchange="processDocument(event, 2)">
         <label>أو اختيار من المعرض:</label>
-        <input type="file" id="file2" accept="image/*" onchange="loadImg(event, 'img2_preview', 2)">
-        <div id="img2_preview" style="font-size:12px; color:green; margin-top:5px;"></div>
+        <input type="file" id="file2" accept="image/*" onchange="processDocument(event, 2)">
+        <canvas id="prevCanvas2" class="preview-canvas"></canvas>
+        <div id="status2" style="font-size:12px; color:green; text-align:center;"></div>
     </div>
 
-    <button onclick="compareImages()" style="background-color: #007bff; font-size: 18px; padding: 15px;">مقارنة الوثيقتين الآن</button>
+    <button onclick="compareProcessedDocuments()" style="background-color: #007bff; font-size: 18px; padding: 15px;">مقارنة الوثيقتين الآن</button>
 
     <h3>النتيجة:</h3>
-    <div id="result">قم باختيار أو تصوير الوثيقتين ثم اضغط على زر المقارنة...</div>
+    <div id="result">قم بتصوير أو إرفاق الوثيقتين ثم اضغط على زر المقارنة...</div>
 
-    <canvas id="canvas1"></canvas>
-    <canvas id="canvas2"></canvas>
+    <canvas id="hiddenCanvas1" class="hidden-canvas"></canvas>
+    <canvas id="hiddenCanvas2" class="hidden-canvas"></canvas>
 
     <script>
-        let imgData1 = null;
-        let imgData2 = null;
+        let processedData1 = null;
+        let processedData2 = null;
 
-        function loadImg(event, previewId, imgIndex) {
+        // دالة فلترة وتحويل الصورة إلى "سكان" (أبيض وأسود عالي التباين لإزالة الظلال والخلفيات)
+        function processDocument(event, docIndex) {
             const file = event.target.files[0];
             if (!file) return;
 
-            document.getElementById(previewId).innerText = "تم رفع الوثيقة بنجاح ✅";
+            document.getElementById('status' + docIndex).innerText = "⏳ جاري تصفية ومعالجة الوثيقة...";
 
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    const canvas = document.getElementById('canvas' + imgIndex);
+                    const canvas = document.getElementById('hiddenCanvas' + docIndex);
                     const ctx = canvas.getContext('2d');
                     
-                    // تصغير الحجم لتوحيد أبعاد المقارنة بدقة وسرعة
-                    canvas.width = 150;
-                    canvas.height = 200;
-                    ctx.drawImage(img, 0, 0, 150, 200);
-                    
-                    const pixels = ctx.getImageData(0, 0, 150, 200).data;
-                    if (imgIndex === 1) imgData1 = pixels;
-                    if (imgIndex === 2) imgData2 = pixels;
+                    // توحيد الأبعاد لتسهيل المطابقة البصرية
+                    const targetWidth = 200;
+                    const targetHeight = 280;
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+
+                    // رسم وتصغير الصورة
+                    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+                    // استخراج البكسلات وتطبيق فلتر التباين الأبيض والأسود (نظام Scan)
+                    const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+                    const pixels = imgData.data;
+
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        let avg = (pixels[i] + pixels[i+1] + pixels[i+2]) / 3;
+                        // تحويل لأسود وأبيض حاد (Threshold) لإزالة الظلال الناتجة عن زوايا التصوير
+                        let color = avg < 140 ? 0 : 255; 
+                        pixels[i] = color;     // R
+                        pixels[i+1] = color; // G
+                        pixels[i+2] = color; // B
+                    }
+
+                    ctx.putImageData(imgData, 0, 0);
+
+                    // عرض صورة مصغرة مفلترة للمستخدم
+                    const prevCanvas = document.getElementById('prevCanvas' + docIndex);
+                    prevCanvas.width = 100;
+                    prevCanvas.height = 140;
+                    const prevCtx = prevCanvas.getContext('2d');
+                    prevCtx.drawImage(canvas, 0, 0, 100, 140);
+
+                    // حفظ البيانات المعالجة
+                    if (docIndex === 1) processedData1 = pixels;
+                    if (docIndex === 2) processedData2 = pixels;
+
+                    document.getElementById('status' + docIndex).innerText = "تمت تصفية الوثيقة بنجاح ✅";
                 }
                 img.src = e.target.result;
             }
             reader.readAsDataURL(file);
         }
 
-        function compareImages() {
+        // دالة المقارنة البصرية الذكية بعد التصفية
+        function compareProcessedDocuments() {
             const resultDiv = document.getElementById('result');
 
-            if (!imgData1 || !imgData2) {
-                alert("يرجى إرفاق الوثيقتين معاً أولاً!");
+            if (!processedData1 || !processedData2) {
+                alert("يرجى إرفاق وتصوير الوثيقتين معاً أولاً!");
                 return;
             }
 
-            resultDiv.innerText = "⏳ جاري مطابقة الوثيقتين بصرياً...";
+            resultDiv.innerText = "⏳ جاري المطابقة البصرية للوثيقتين...";
 
             let matchingPixels = 0;
-            let totalPixels = imgData1.length;
+            let totalPixels = processedData1.length;
 
-            // حساب نسبة التطابق البصري بين البكسلات
             for (let i = 0; i < totalPixels; i += 4) {
-                let r1 = imgData1[i], g1 = imgData1[i+1], b1 = imgData1[i+2];
-                let r2 = imgData2[i], g2 = imgData2[i+1], b2 = imgData2[i+2];
-
-                // السماح بهامش تفاوت بسيط جداً للإضاءة والظلال
-                if (Math.abs(r1 - r2) < 40 && Math.abs(g1 - g2) < 40 && Math.abs(b1 - b2) < 40) {
+                if (processedData1[i] === processedData2[i]) {
                     matchingPixels++;
                 }
             }
 
             let similarity = Math.round((matchingPixels / (totalPixels / 4)) * 100);
 
-            // رفع الحساسية لتكون المطابق صارمة للوثائق
-            if (similarity >= 80) {
-                resultDiv.innerHTML = `<span style='color:green;'>✅ الوثيقتان متطابقتان تماماً!<br>(نسبة التطابق البصري: ${similarity}%)</span>`;
+            // نسبة دقة صارمة ومناسبة للوثائق المصفاة
+            if (similarity >= 82) {
+                resultDiv.innerHTML = `<span style='color:green;'>✅ الوثيقتان متطابقتان تماماً!<br>(نسبة التطابق بعد الفلترة: ${similarity}%)</span>`;
             } else {
-                resultDiv.innerHTML = `<span style='color:red;'>❌ الوثيقتان غير متطابقتين!<br>(نسبة التطابق البصري: ${similarity}%)</span>`;
+                resultDiv.innerHTML = `<span style='color:red;'>❌ الوثيقتان غير متطابقتين!<br>(نسبة التطابق بعد الفلترة: ${similarity}%)</span>`;
             }
         }
     </script>
