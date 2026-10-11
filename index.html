@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مقارن النصوص من الصور</title>
+    <style>
+        body { font-family: sans-serif; padding: 15px; background-color: #f4f4f9; text-align: center; }
+        .box { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        button { background-color: #007bff; color: white; border: none; padding: 12px 20px; border-radius: 5px; font-size: 16px; width: 100%; margin-top: 10px; }
+        #result { background: #eef2f5; padding: 10px; border-radius: 5px; text-align: right; white-space: pre-wrap; font-size: 14px; margin-top: 15px; }
+    </style>
+    <!-- مكتبة Tesseract لقراءة النصوص محلياً أوفلاين -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+
+    <h2>مقارن النصوص أوفلاين</h2>
+
+    <div class="box">
+        <label>الصورة الأولى:</label><br>
+        <input type="file" id="img1" accept="image/*">
+    </div>
+
+    <div class="box">
+        <label>الصورة الثانية:</label><br>
+        <input type="file" id="img2" accept="image/*">
+    </div>
+
+    <button onclick="processAndCompare()">مقارنة النصين الآن</button>
+
+    <h3>النتيجة:</h3>
+    <div id="result">قم باختيار الصورتين ثم اضغط على زر المقارنة...</div>
+
+    <script>
+        async function processAndCompare() {
+            const resultDiv = document.getElementById('result');
+            const file1 = document.getElementById('img1').files[0];
+            const file2 = document.getElementById('img2').files[0];
+
+            if (!file1 || !file2) {
+                alert("يرجى اختيار الصورتين أولاً!");
+                return;
+            }
+
+            resultDiv.innerText = "جاري استخراج النصوص وقراءتها محلياً...";
+
+            try {
+                // استخراج النص من الصورة الأولى
+                const res1 = await Tesseract.recognize(file1, 'ara+eng');
+                const text1 = res1.data.text.trim();
+
+                // استخراج النص من الصورة الثانية
+                const res2 = await Tesseract.recognize(file2, 'ara+eng');
+                const text2 = res2.data.text.trim();
+
+                // المقارنة
+                if (text1 === text2) {
+                    resultDiv.innerHTML = "<b style='color:green;'>✅ النصان متطابقان تماماً!</b>\n\n" + text1;
+                } else {
+                    resultDiv.innerHTML = "<b style='color:red;'>❌ النصان مختلفان!</b>\n\n" +
+                                          "<b>النص الأول:</b>\n" + text1 + "\n\n" +
