@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مقارن النصوص من الصور</title>
+    <title>مقارن النصوص الحرفي</title>
     <style>
         body { font-family: sans-serif; padding: 15px; background-color: #f4f4f9; text-align: center; }
         .box { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: right; }
         button { background-color: #007bff; color: white; border: none; padding: 12px 20px; border-radius: 5px; font-size: 16px; width: 100%; margin-top: 5px; cursor: pointer; }
         .btn-cam { background-color: #28a745; margin-bottom: 8px; }
         #result { background: #eef2f5; padding: 12px; border-radius: 5px; text-align: right; white-space: pre-wrap; font-size: 14px; margin-top: 15px; line-height: 1.6; }
-        input[type="file"] { width: 100%; margin-top: 5px; }
+        .developer-tag { font-size: 13px; color: #666; margin-bottom: 15px; font-weight: bold; }
     </style>
-    <!-- تحميل مكتبة Tesseract لقراءة النصوص -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 
-    <h2>مقارن النصوص من الصور</h2>
+    <h2>مقارن النصوص الحرفي للوثائق</h2>
+    <div class="developer-tag">تطوير: المهندس أبوكنان 🛠️</div>
 
     <!-- الصورة الأولى -->
     <div class="box">
@@ -39,7 +39,7 @@
         <div id="prev2" style="font-size:12px; color:green; margin-top:5px;"></div>
     </div>
 
-    <button onclick="processAndCompare()" style="background-color: #007bff; font-size: 18px; padding: 15px;">مقارنة النصين الآن</button>
+    <button onclick="processAndCompare()" style="background-color: #007bff; font-size: 18px; padding: 15px;">مقارنة حرفية الآن</button>
 
     <h3>النتيجة:</h3>
     <div id="result">قم باختيار أو تصوير الصورتين ثم اضغط على زر المقارنة...</div>
@@ -48,47 +48,60 @@
         function previewImage(event, prevId) {
             const file = event.target.files[0];
             if (file) {
-                document.getElementById(prevId).innerText = "تم اختيار الصورة بنجاح ✅";
+                document.getElementById(prevId).innerText = "تم إدراج الصورة بنجاح ✅";
             }
+        }
+
+        // دالة تنظيف النص العربي للمطابقة الحرفية الدقيقة (إزالة الفراغات المزدوجة والأسطر الفارغة)
+        function cleanArabicText(text) {
+            if (!text) return "";
+            return text
+                .replace(/[\u064B-\u0652]/g, "") // إزالة التشكيل (اختياري، يضمن دقة المطابقة الحرفية بحذف الحركات المختلفة)
+                .replace(/[\r\n]+/g, ' ')        // توحيد الأسطر إلى مسافات
+                .replace(/\s+/g, ' ')            // توحيد المسافات المتعددة إلى مسافة واحدة
+                .trim();
         }
 
         async function processAndCompare() {
             const resultDiv = document.getElementById('result');
-            
-            // جلب الملف إما من الكاميرا أو من المعرض
             const file1 = document.getElementById('cam1').files[0] || document.getElementById('img1').files[0];
             const file2 = document.getElementById('cam2').files[0] || document.getElementById('img2').files[0];
 
             if (!file1 || !file2) {
-                alert("يرجى إدخال أو اختيار الصورتين معاً!");
+                alert("يرجى اختيار الصورتين أولاً!");
                 return;
             }
 
-            resultDiv.innerText = "⏳ جاري قراءة النصوص واستخراجها (قد يستغرق بضع ثوانٍ)...";
+            resultDiv.innerText = "⏳ جاري قراءة النصوص واستخراجها محلياً...";
 
             try {
-                // قراءة النص من الصورة الأولى
+                // قراءة الصورة الأولى باللغة العربية والانجليزية
                 const worker1 = await Tesseract.createWorker('ara+eng');
                 const ret1 = await worker1.recognize(file1);
-                const text1 = ret1.data.text.trim();
+                const rawText1 = ret1.data.text;
                 await worker1.terminate();
 
-                // قراءة النص من الصورة الثانية
+                // قراءة الصورة الثانية باللغة العربية والانجليزية
                 const worker2 = await Tesseract.createWorker('ara+eng');
                 const ret2 = await worker2.recognize(file2);
-                const text2 = ret2.data.text.trim();
+                const rawText2 = ret2.data.text;
                 await worker2.terminate();
 
-                // مقارنة النصوص
-                if (text1 === text2 && text1 !== "") {
-                    resultDiv.innerHTML = "<b style='color:green; font-size:16px;'>✅ النصان متطابقان تماماً!</b>\n\n<b>النص المستخرج:</b>\n" + text1;
+                const t1 = cleanArabicText(rawText1);
+                const t2 = cleanArabicText(rawText2);
+
+                // مقارنة حرفية تامة
+                if (t1 === t2 && t1 !== "") {
+                    resultDiv.innerHTML = "<b style='color:green; font-size:16px;'>✅ النصان متطابقان حرفياً تماماً!</b>\n\n<b>النص المطابق:</b>\n" + t1;
                 } else {
-                    resultDiv.innerHTML = "<b style='color:red; font-size:16px;'>❌ النصان مختلفان!</b>\n\n" +
-                                          "<b>--- النص الأول ---</b>\n" + (text1 || "[لم يُعثر على نص]") + "\n\n" +
-                                          "<b>--- النص الثاني ---</b>\n" + (text2 || "[لم يُعثر على نص]");
+                    resultDiv.innerHTML = "<b style='color:red; font-size:16px;'>❌ النصان غير متطابقين حرفياً!</b>\n\n" +
+                                          "<b>--- النص الأول ---</b>\n" + (t1 || "[لم يُقرأ نص]") + "\n\n" +
+                                          "-----------------------------------------\n" +
+                                          "<b>--- النص الثاني ---</b>\n" + (t2 || "[لم يُقرأ نص]");
                 }
+
             } catch (err) {
-                resultDiv.innerText = "حدث خطأ أثناء المعالجة: " + err.message + "\n(تأكد من الاتصال بالإنترنت لأول مرة لتنزيل حزمة التعرف على النصوص).";
+                resultDiv.innerText = "حدث خطأ أثناء قراءة الصور: " + err.message;
             }
         }
     </script>
