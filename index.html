@@ -12,6 +12,7 @@
         #result { background: #eef2f5; padding: 12px; border-radius: 5px; text-align: right; white-space: pre-wrap; font-size: 14px; margin-top: 15px; line-height: 1.6; }
         .developer-tag { font-size: 13px; color: #666; margin-bottom: 15px; font-weight: bold; }
     </style>
+    <!-- مكتبة Tesseract -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
@@ -52,13 +53,12 @@
             }
         }
 
-        // دالة تنظيف النص العربي للمطابقة الحرفية الدقيقة (إزالة الفراغات المزدوجة والأسطر الفارغة)
         function cleanArabicText(text) {
             if (!text) return "";
             return text
-                .replace(/[\u064B-\u0652]/g, "") // إزالة التشكيل (اختياري، يضمن دقة المطابقة الحرفية بحذف الحركات المختلفة)
-                .replace(/[\r\n]+/g, ' ')        // توحيد الأسطر إلى مسافات
-                .replace(/\s+/g, ' ')            // توحيد المسافات المتعددة إلى مسافة واحدة
+                .replace(/[\u064B-\u0652]/g, "") // إزالة التشكيل
+                .replace(/[\r\n]+/g, ' ')        // توحيد الأسطر
+                .replace(/\s+/g, ' ')            // توحيد المسافات
                 .trim();
         }
 
@@ -72,17 +72,16 @@
                 return;
             }
 
-            resultDiv.innerText = "⏳ جاري قراءة النصوص واستخراجها محلياً...";
+            resultDiv.innerText = "⏳ يرجى الاتصال بالإنترنت مؤقتاً لأول مرة لتحميل ملفات اللغة العربية...\nجاري قراءة النصوص المعالجة...";
 
             try {
-                // قراءة الصورة الأولى باللغة العربية والانجليزية
-                const worker1 = await Tesseract.createWorker('ara+eng');
+                // استخدام اللغة العربية وحدها (ara) لضمان دقة قراءة الحروف العربية وعدم تداخل الرموز الإنجليزية
+                const worker1 = await Tesseract.createWorker('ara');
                 const ret1 = await worker1.recognize(file1);
                 const rawText1 = ret1.data.text;
                 await worker1.terminate();
 
-                // قراءة الصورة الثانية باللغة العربية والانجليزية
-                const worker2 = await Tesseract.createWorker('ara+eng');
+                const worker2 = await Tesseract.createWorker('ara');
                 const ret2 = await worker2.recognize(file2);
                 const rawText2 = ret2.data.text;
                 await worker2.terminate();
@@ -90,7 +89,6 @@
                 const t1 = cleanArabicText(rawText1);
                 const t2 = cleanArabicText(rawText2);
 
-                // مقارنة حرفية تامة
                 if (t1 === t2 && t1 !== "") {
                     resultDiv.innerHTML = "<b style='color:green; font-size:16px;'>✅ النصان متطابقان حرفياً تماماً!</b>\n\n<b>النص المطابق:</b>\n" + t1;
                 } else {
