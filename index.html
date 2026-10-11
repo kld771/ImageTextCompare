@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مقارن النصوص من الصور</title>
+    <style>
+        body { font-family: sans-serif; padding: 15px; background-color: #f4f4f9; text-align: center; }
+        .box { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: right; }
+        button { background-color: #007bff; color: white; border: none; padding: 12px 20px; border-radius: 5px; font-size: 16px; width: 100%; margin-top: 5px; cursor: pointer; }
+        .btn-cam { background-color: #28a745; margin-bottom: 8px; }
+        #result { background: #eef2f5; padding: 12px; border-radius: 5px; text-align: right; white-space: pre-wrap; font-size: 14px; margin-top: 15px; line-height: 1.6; }
+        input[type="file"] { width: 100%; margin-top: 5px; }
+    </style>
+    <!-- تحميل مكتبة Tesseract لقراءة النصوص -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+
+    <h2>مقارن النصوص من الصور</h2>
+
+    <!-- الصورة الأولى -->
+    <div class="box">
+        <label><b>الصورة الأولى:</b></label><br>
+        <button class="btn-cam" onclick="document.getElementById('cam1').click()">📷 تصوير بالكاميرا</button>
+        <input type="file" id="cam1" accept="image/*" capture="environment" style="display:none" onchange="previewImage(event, 'prev1')">
+        <label>أو اختيار من المعرض:</label>
+        <input type="file" id="img1" accept="image/*" onchange="previewImage(event, 'prev1')">
+        <div id="prev1" style="font-size:12px; color:green; margin-top:5px;"></div>
+    </div>
+
+    <!-- الصورة الثانية -->
+    <div class="box">
+        <label><b>الصورة الثانية:</b></label><br>
+        <button class="btn-cam" onclick="document.getElementById('cam2').click()">📷 تصوير بالكاميرا</button>
+        <input type="file" id="cam2" accept="image/*" capture="environment" style="display:none" onchange="previewImage(event, 'prev2')">
+        <label>أو اختيار من المعرض:</label>
+        <input type="file" id="img2" accept="image/*" onchange="previewImage(event, 'prev2')">
+        <div id="prev2" style="font-size:12px; color:green; margin-top:5px;"></div>
+    </div>
+
+    <button onclick="processAndCompare()" style="background-color: #007bff; font-size: 18px; padding: 15px;">مقارنة النصين الآن</button>
+
+    <h3>النتيجة:</h3>
+    <div id="result">قم باختيار أو تصوير الصورتين ثم اضغط على زر المقارنة...</div>
+
+    <script>
+        function previewImage(event, prevId) {
+            const file = event.target.files[0];
+            if (file) {
+                document.getElementById(prevId).innerText = "تم اختيار الصورة بنجاح ✅";
+            }
+        }
+
+        async function processAndCompare() {
+            const resultDiv = document.getElementById('result');
+            
+            // جلب الملف إما من الكاميرا أو من المعرض
+            const file1 = document.getElementById('cam1').files[0] || document.getElementById('img1').files[0];
+            const file2 = document.getElementById('cam2').files[0] || document.getElementById('img2').files[0];
+
+            if (!file1 || !file2) {
+                alert("يرجى إدخال أو اختيار الصورتين معاً!");
+                return;
+            }
+
+            resultDiv.innerText = "⏳ جاري قراءة النصوص واستخراجها (قد يستغرق بضع ثوانٍ)...";
+
+            try {
+                // قراءة النص من الصورة الأولى
+                const worker1 = await Tesseract.createWorker('ara+eng');
+                const ret1 = await worker1.recognize(file1);
+                const text1 = ret1.data.text.trim();
+                await worker1.terminate();
+
+                // قراءة النص من الصورة الثانية
+                const worker2 = await Tesseract.createWorker('ara+eng');
+                const ret2 = await worker2.recognize(file2);
+                const text2 = ret2.data.text.trim();
+                await worker2.terminate();
+
+                // مقارنة النصوص
+                if (text1 === text2 && text1 !== "") {
+                    resultDiv.innerHTML = "<b style='color:green; font-size:16px;'>✅ النصان متطابقان تماماً!</b>\n\n<b>النص المستخرج:</b>\n" + text1;
+                } else {
+                    resultDiv.innerHTML = "<b style='color:red; font-size:16px;'>❌ النصان مختلفان!</b>\n\n" +
+                                          "<b>--- النص الأول ---</b>\n" + (text1 || "[لم يُعثر على نص]") + "\n\n" +
+                                          "<b>--- النص الثاني ---</b>\n" + (text2 || "[لم يُعثر على نص]");
+                }
+            } catch (err) {
+                resultDiv.innerText = "حدث خطأ أثناء المعالجة: " + err.message + "\n(تأكد من الاتصال بالإنترنت لأول مرة لتنزيل حزمة التعرف على النصوص).";
+            }
+        }
+    </script>
+</body>
+</html>
