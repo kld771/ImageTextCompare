@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مقارن الوثائق الشبيه بـ كام سكانر</title>
+    <title>مقارن الوثائق - Magic Pro</title>
     <style>
         body { font-family: sans-serif; padding: 15px; background-color: #f4f4f9; text-align: center; }
         .box { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: right; }
@@ -11,22 +11,22 @@
         .btn-cam { background-color: #28a745; margin-bottom: 8px; }
         #result { background: #eef2f5; padding: 15px; border-radius: 5px; text-align: center; font-size: 16px; margin-top: 15px; font-weight: bold; line-height: 1.6; }
         .developer-tag { font-size: 13px; color: #666; margin-bottom: 15px; font-weight: bold; }
-        .preview-canvas { display: block; margin: 10px auto; max-width: 120px; border: 1px solid #ccc; border-radius: 4px; }
+        .preview-canvas { display: block; margin: 10px auto; max-width: 130px; border: 1px solid #ccc; border-radius: 4px; background: white; }
         .hidden-canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <h2>مقارن الوثائق الذكي (نظام الفلترة البصرية)</h2>
+    <h2>مقارن الوثائق الذكي (فلاتر Magic Pro)</h2>
     <div class="developer-tag">تطوير: المهندس أبوكنان 🛠️</div>
 
     <!-- الوثيقة الأولى -->
     <div class="box">
         <label><b>الوثيقة الأولى:</b></label><br>
-        <button class="btn-cam" onclick="document.getElementById('cam1').click()">📷 تصوير الوثيقة</button>
-        <input type="file" id="cam1" accept="image/*" capture="environment" style="display:none" onchange="processDocument(event, 1)">
+        <button class="btn-cam" onclick="document.getElementById('cam1').click()">📷 تصوير بالكاميرا</button>
+        <input type="file" id="cam1" accept="image/*" capture="environment" style="display:none" onchange="applyMagicPro(event, 1)">
         <label>أو اختيار من المعرض:</label>
-        <input type="file" id="file1" accept="image/*" onchange="processDocument(event, 1)">
+        <input type="file" id="file1" accept="image/*" onchange="applyMagicPro(event, 1)">
         <canvas id="prevCanvas1" class="preview-canvas"></canvas>
         <div id="status1" style="font-size:12px; color:green; text-align:center;"></div>
     </div>
@@ -34,15 +34,15 @@
     <!-- الوثيقة الثانية -->
     <div class="box">
         <label><b>الوثيقة الثانية:</b></label><br>
-        <button class="btn-cam" onclick="document.getElementById('cam2').click()">📷 تصوير الوثيقة</button>
-        <input type="file" id="cam2" accept="image/*" capture="environment" style="display:none" onchange="processDocument(event, 2)">
+        <button class="btn-cam" onclick="document.getElementById('cam2').click()">📷 تصوير بالكاميرا</button>
+        <input type="file" id="cam2" accept="image/*" capture="environment" style="display:none" onchange="applyMagicPro(event, 2)">
         <label>أو اختيار من المعرض:</label>
-        <input type="file" id="file2" accept="image/*" onchange="processDocument(event, 2)">
+        <input type="file" id="file2" accept="image/*" onchange="applyMagicPro(event, 2)">
         <canvas id="prevCanvas2" class="preview-canvas"></canvas>
         <div id="status2" style="font-size:12px; color:green; text-align:center;"></div>
     </div>
 
-    <button onclick="compareProcessedDocuments()" style="background-color: #007bff; font-size: 18px; padding: 15px;">مقارنة الوثيقتين الآن</button>
+    <button onclick="compareMagicDocuments()" style="background-color: #007bff; font-size: 18px; padding: 15px;">مقارنة الوثيقتين الآن</button>
 
     <h3>النتيجة:</h3>
     <div id="result">قم بتصوير أو إرفاق الوثيقتين ثم اضغط على زر المقارنة...</div>
@@ -54,12 +54,12 @@
         let processedData1 = null;
         let processedData2 = null;
 
-        // دالة فلترة وتحويل الصورة إلى "سكان" (أبيض وأسود عالي التباين لإزالة الظلال والخلفيات)
-        function processDocument(event, docIndex) {
+        // خوارزمية فلتر Magic Pro (Adaptive Thresholding) لإزالة الظلال وتصفية الوثائق تماماً
+        function applyMagicPro(event, docIndex) {
             const file = event.target.files[0];
             if (!file) return;
 
-            document.getElementById('status' + docIndex).innerText = "⏳ جاري تصفية ومعالجة الوثيقة...";
+            document.getElementById('status' + docIndex).innerText = "⏳ جاري تطبيق فلتر Magic Pro...";
 
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -68,58 +68,86 @@
                     const canvas = document.getElementById('hiddenCanvas' + docIndex);
                     const ctx = canvas.getContext('2d');
                     
-                    // توحيد الأبعاد لتسهيل المطابقة البصرية
-                    const targetWidth = 200;
-                    const targetHeight = 280;
-                    canvas.width = targetWidth;
-                    canvas.height = targetHeight;
+                    const width = 250;
+                    const height = 350;
+                    canvas.width = width;
+                    canvas.height = height;
 
-                    // رسم وتصغير الصورة
-                    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-                    // استخراج البكسلات وتطبيق فلتر التباين الأبيض والأسود (نظام Scan)
-                    const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const imgData = ctx.getImageData(0, 0, width, height);
                     const pixels = imgData.data;
 
+                    // تحويل الصورة إلى تدرج الرمادي (Grayscale)
+                    let gray = new Float32Array(width * height);
                     for (let i = 0; i < pixels.length; i += 4) {
-                        let avg = (pixels[i] + pixels[i+1] + pixels[i+2]) / 3;
-                        // تحويل لأسود وأبيض حاد (Threshold) لإزالة الظلال الناتجة عن زوايا التصوير
-                        let color = avg < 140 ? 0 : 255; 
-                        pixels[i] = color;     // R
-                        pixels[i+1] = color; // G
-                        pixels[i+2] = color; // B
+                        gray[i / 4] = 0.299 * pixels[i] + 0.587 * pixels[i+1] + 0.114 * pixels[i+2];
                     }
 
-                    ctx.putImageData(imgData, 0, 0);
+                    // تطبيق خوارزمية العتبة التكيفية (Adaptive Thresholding المحاكية لـ Magic Pro)
+                    let output = new Uint8ClampedArray(pixels.length);
+                    let S = Math.floor(width / 8); // حجم نافذة الفلترة الموضعية
+                    let T = 15; // نسبة التباين لإزالة الظلال
 
-                    // عرض صورة مصغرة مفلترة للمستخدم
+                    for (let y = 0; y < height; y++) {
+                        for (let x = 0; x < width; x++) {
+                            let idx = y * width + x;
+                            let sum = 0;
+                            let count = 0;
+
+                            // حساب متوسط السطوع للمنطقة المجاورة (لإلغاء أثر الإضاءة والظلال المتفاوتة)
+                            for (let dy = -S/2; dy < S/2; dy++) {
+                                for (let dx = -S/2; dx < S/2; dx++) {
+                                    let ny = y + dy;
+                                    let nx = x + dx;
+                                    if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+                                        sum += gray[ny * width + nx];
+                                        count++;
+                                    }
+                                }
+                            }
+
+                            let localMean = sum / count;
+                            let val = gray[idx] < (localMean - T) ? 0 : 255; // 0 أسود (حروف)، 255 أبيض (خلفية)
+
+                            let pIdx = idx * 4;
+                            output[pIdx] = val;
+                            output[pIdx+1] = val;
+                            output[pIdx+2] = val;
+                            output[pIdx+3] = 255;
+                        }
+                    }
+
+                    // تحديث بيانات الـ Canvas بالنتيجة المصفاة
+                    const finalImgData = new ImageData(output, width, height);
+                    ctx.putImageData(finalImgData, 0, 0);
+
+                    // عرض معاينة مصغرة للوثيقة بعد تطبيق فلتر Magic Pro
                     const prevCanvas = document.getElementById('prevCanvas' + docIndex);
-                    prevCanvas.width = 100;
-                    prevCanvas.height = 140;
+                    prevCanvas.width = 110;
+                    prevCanvas.height = 154;
                     const prevCtx = prevCanvas.getContext('2d');
-                    prevCtx.drawImage(canvas, 0, 0, 100, 140);
+                    prevCtx.drawImage(canvas, 0, 0, 110, 154);
 
-                    // حفظ البيانات المعالجة
-                    if (docIndex === 1) processedData1 = pixels;
-                    if (docIndex === 2) processedData2 = pixels;
+                    if (docIndex === 1) processedData1 = output;
+                    if (docIndex === 2) processedData2 = output;
 
-                    document.getElementById('status' + docIndex).innerText = "تمت تصفية الوثيقة بنجاح ✅";
+                    document.getElementById('status' + docIndex).innerText = "تمت التصفية بنجاح (Magic Pro) ✅";
                 }
                 img.src = e.target.result;
             }
             reader.readAsDataURL(file);
         }
 
-        // دالة المقارنة البصرية الذكية بعد التصفية
-        function compareProcessedDocuments() {
+        // مقارنة الوثيقتين المصفاتين بدقة عالية
+        function compareMagicDocuments() {
             const resultDiv = document.getElementById('result');
 
             if (!processedData1 || !processedData2) {
-                alert("يرجى إرفاق وتصوير الوثيقتين معاً أولاً!");
+                alert("يرجى إرفاق الوثيقتين معاً أولاً!");
                 return;
             }
 
-            resultDiv.innerText = "⏳ جاري المطابقة البصرية للوثيقتين...";
+            resultDiv.innerText = "⏳ جاري المطابقة البصرية الذكية للوثيقتين...";
 
             let matchingPixels = 0;
             let totalPixels = processedData1.length;
@@ -132,11 +160,10 @@
 
             let similarity = Math.round((matchingPixels / (totalPixels / 4)) * 100);
 
-            // نسبة دقة صارمة ومناسبة للوثائق المصفاة
-            if (similarity >= 82) {
-                resultDiv.innerHTML = `<span style='color:green;'>✅ الوثيقتان متطابقتان تماماً!<br>(نسبة التطابق بعد الفلترة: ${similarity}%)</span>`;
+            if (similarity >= 78) {
+                resultDiv.innerHTML = `<span style='color:green;'>✅ الوثيقتان متطابقتان تماماً!<br>(نسبة التطابق بفلتر Magic Pro: ${similarity}%)</span>`;
             } else {
-                resultDiv.innerHTML = `<span style='color:red;'>❌ الوثيقتان غير متطابقتين!<br>(نسبة التطابق بعد الفلترة: ${similarity}%)</span>`;
+                resultDiv.innerHTML = `<span style='color:red;'>❌ الوثيقتان غير متطابقتين!<br>(نسبة التطابق بفلتر Magic Pro: ${similarity}%)</span>`;
             }
         }
     </script>
