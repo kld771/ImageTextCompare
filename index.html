@@ -3,103 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مقارن النصوص الحرفي</title>
+    <title>مقارن الوثائق الذكي</title>
     <style>
         body { font-family: sans-serif; padding: 15px; background-color: #f4f4f9; text-align: center; }
         .box { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: right; }
         button { background-color: #007bff; color: white; border: none; padding: 12px 20px; border-radius: 5px; font-size: 16px; width: 100%; margin-top: 5px; cursor: pointer; }
         .btn-cam { background-color: #28a745; margin-bottom: 8px; }
-        #result { background: #eef2f5; padding: 12px; border-radius: 5px; text-align: right; white-space: pre-wrap; font-size: 14px; margin-top: 15px; line-height: 1.6; }
+        #result { background: #eef2f5; padding: 15px; border-radius: 5px; text-align: center; font-size: 16px; margin-top: 15px; font-weight: bold; line-height: 1.6; }
         .developer-tag { font-size: 13px; color: #666; margin-bottom: 15px; font-weight: bold; }
+        canvas { display: none; }
     </style>
-    <!-- مكتبة Tesseract -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 
-    <h2>مقارن النصوص الحرفي للوثائق</h2>
+    <h2>مقارن الوثائق البصري</h2>
     <div class="developer-tag">تطوير: المهندس أبوكنان 🛠️</div>
 
     <!-- الصورة الأولى -->
     <div class="box">
-        <label><b>الصورة الأولى:</b></label><br>
+        <label><b>الوثيقة الأولى:</b></label><br>
         <button class="btn-cam" onclick="document.getElementById('cam1').click()">📷 تصوير بالكاميرا</button>
-        <input type="file" id="cam1" accept="image/*" capture="environment" style="display:none" onchange="previewImage(event, 'prev1')">
+        <input type="file" id="cam1" accept="image/*" capture="environment" style="display:none" onchange="loadImg(event, 'img1_preview', 1)">
         <label>أو اختيار من المعرض:</label>
-        <input type="file" id="img1" accept="image/*" onchange="previewImage(event, 'prev1')">
-        <div id="prev1" style="font-size:12px; color:green; margin-top:5px;"></div>
+        <input type="file" id="file1" accept="image/*" onchange="loadImg(event, 'img1_preview', 1)">
+        <div id="img1_preview" style="font-size:12px; color:green; margin-top:5px;"></div>
     </div>
 
     <!-- الصورة الثانية -->
     <div class="box">
-        <label><b>الصورة الثانية:</b></label><br>
+        <label><b>الوثيقة الثانية:</b></label><br>
         <button class="btn-cam" onclick="document.getElementById('cam2').click()">📷 تصوير بالكاميرا</button>
-        <input type="file" id="cam2" accept="image/*" capture="environment" style="display:none" onchange="previewImage(event, 'prev2')">
+        <input type="file" id="cam2" accept="image/*" capture="environment" style="display:none" onchange="loadImg(event, 'img2_preview', 2)">
         <label>أو اختيار من المعرض:</label>
-        <input type="file" id="img2" accept="image/*" onchange="previewImage(event, 'prev2')">
-        <div id="prev2" style="font-size:12px; color:green; margin-top:5px;"></div>
+        <input type="file" id="file2" accept="image/*" onchange="loadImg(event, 'img2_preview', 2)">
+        <div id="img2_preview" style="font-size:12px; color:green; margin-top:5px;"></div>
     </div>
 
-    <button onclick="processAndCompare()" style="background-color: #007bff; font-size: 18px; padding: 15px;">مقارنة حرفية الآن</button>
+    <button onclick="compareImages()" style="background-color: #007bff; font-size: 18px; padding: 15px;">مقارنة الوثيقتين الآن</button>
 
     <h3>النتيجة:</h3>
-    <div id="result">قم باختيار أو تصوير الصورتين ثم اضغط على زر المقارنة...</div>
+    <div id="result">قم باختيار أو تصوير الوثيقتين ثم اضغط على زر المقارنة...</div>
+
+    <canvas id="canvas1"></canvas>
+    <canvas id="canvas2"></canvas>
 
     <script>
-        function previewImage(event, prevId) {
+        let imgData1 = null;
+        let imgData2 = null;
+
+        function loadImg(event, previewId, imgIndex) {
             const file = event.target.files[0];
-            if (file) {
-                document.getElementById(prevId).innerText = "تم إدراج الصورة بنجاح ✅";
+            if (!file) return;
+
+            document.getElementById(previewId).innerText = "تم رفع الوثيقة بنجاح ✅";
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById('canvas' + imgIndex);
+                    const ctx = canvas.getContext('2d');
+                    
+                    // تصغير الحجم لتوحيد أبعاد المقارنة بدقة وسرعة
+                    canvas.width = 150;
+                    canvas.height = 200;
+                    ctx.drawImage(img, 0, 0, 150, 200);
+                    
+                    const pixels = ctx.getImageData(0, 0, 150, 200).data;
+                    if (imgIndex === 1) imgData1 = pixels;
+                    if (imgIndex === 2) imgData2 = pixels;
+                }
+                img.src = e.target.result;
             }
+            reader.readAsDataURL(file);
         }
 
-        function cleanArabicText(text) {
-            if (!text) return "";
-            return text
-                .replace(/[\u064B-\u0652]/g, "") // إزالة التشكيل
-                .replace(/[\r\n]+/g, ' ')        // توحيد الأسطر
-                .replace(/\s+/g, ' ')            // توحيد المسافات
-                .trim();
-        }
-
-        async function processAndCompare() {
+        function compareImages() {
             const resultDiv = document.getElementById('result');
-            const file1 = document.getElementById('cam1').files[0] || document.getElementById('img1').files[0];
-            const file2 = document.getElementById('cam2').files[0] || document.getElementById('img2').files[0];
 
-            if (!file1 || !file2) {
-                alert("يرجى اختيار الصورتين أولاً!");
+            if (!imgData1 || !imgData2) {
+                alert("يرجى إرفاق الوثيقتين معاً أولاً!");
                 return;
             }
 
-            resultDiv.innerText = "⏳ يرجى الاتصال بالإنترنت مؤقتاً لأول مرة لتحميل ملفات اللغة العربية...\nجاري قراءة النصوص المعالجة...";
+            resultDiv.innerText = "⏳ جاري مطابقة الوثيقتين بصرياً...";
 
-            try {
-                // استخدام اللغة العربية وحدها (ara) لضمان دقة قراءة الحروف العربية وعدم تداخل الرموز الإنجليزية
-                const worker1 = await Tesseract.createWorker('ara');
-                const ret1 = await worker1.recognize(file1);
-                const rawText1 = ret1.data.text;
-                await worker1.terminate();
+            let matchingPixels = 0;
+            let totalPixels = imgData1.length;
 
-                const worker2 = await Tesseract.createWorker('ara');
-                const ret2 = await worker2.recognize(file2);
-                const rawText2 = ret2.data.text;
-                await worker2.terminate();
+            // حساب نسبة التطابق البصري بين البكسلات
+            for (let i = 0; i < totalPixels; i += 4) {
+                let r1 = imgData1[i], g1 = imgData1[i+1], b1 = imgData1[i+2];
+                let r2 = imgData2[i], g2 = imgData2[i+1], b2 = imgData2[i+2];
 
-                const t1 = cleanArabicText(rawText1);
-                const t2 = cleanArabicText(rawText2);
-
-                if (t1 === t2 && t1 !== "") {
-                    resultDiv.innerHTML = "<b style='color:green; font-size:16px;'>✅ النصان متطابقان حرفياً تماماً!</b>\n\n<b>النص المطابق:</b>\n" + t1;
-                } else {
-                    resultDiv.innerHTML = "<b style='color:red; font-size:16px;'>❌ النصان غير متطابقين حرفياً!</b>\n\n" +
-                                          "<b>--- النص الأول ---</b>\n" + (t1 || "[لم يُقرأ نص]") + "\n\n" +
-                                          "-----------------------------------------\n" +
-                                          "<b>--- النص الثاني ---</b>\n" + (t2 || "[لم يُقرأ نص]");
+                // السماح بهامش تفاوت بسيط جداً للإضاءة والظلال
+                if (Math.abs(r1 - r2) < 40 && Math.abs(g1 - g2) < 40 && Math.abs(b1 - b2) < 40) {
+                    matchingPixels++;
                 }
+            }
 
-            } catch (err) {
-                resultDiv.innerText = "حدث خطأ أثناء قراءة الصور: " + err.message;
+            let similarity = Math.round((matchingPixels / (totalPixels / 4)) * 100);
+
+            // رفع الحساسية لتكون المطابق صارمة للوثائق
+            if (similarity >= 80) {
+                resultDiv.innerHTML = `<span style='color:green;'>✅ الوثيقتان متطابقتان تماماً!<br>(نسبة التطابق البصري: ${similarity}%)</span>`;
+            } else {
+                resultDiv.innerHTML = `<span style='color:red;'>❌ الوثيقتان غير متطابقتين!<br>(نسبة التطابق البصري: ${similarity}%)</span>`;
             }
         }
     </script>
